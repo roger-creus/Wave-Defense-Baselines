@@ -1,0 +1,6 @@
+runs/*
+/runs/*
+wandb/*
+/wandb/*
+*.pyc
+/*.pyc
