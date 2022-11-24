@@ -11,13 +11,15 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-import WaveDefense
 
+import WaveDefense
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from utils.utils import *
 from utils.networks import *
 
+# for running in a cluster with no display
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 def parse_args():
     # fmt: off
@@ -42,11 +44,11 @@ def parse_args():
     # Algorithm specific arguments
     parser.add_argument("--env-id", type=str, default="WaveDefense-v1",
         help="the id of the environment")
-    parser.add_argument("--total-timesteps", type=int, default=10000000,
+    parser.add_argument("--total-timesteps", type=int, default=500000,
         help="total timesteps of the experiments")
     parser.add_argument("--learning-rate", type=float, default=2.5e-4,
         help="the learning rate of the optimizer")
-    parser.add_argument("--num-envs", type=int, default=8,
+    parser.add_argument("--num-envs", type=int, default=4,
         help="the number of parallel game environments")
     parser.add_argument("--num-steps", type=int, default=128,
         help="the number of steps to run in each environment per policy rollout")
@@ -62,7 +64,7 @@ def parse_args():
         help="the K epochs to update the policy")
     parser.add_argument("--norm-adv", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggles advantages normalization")
-    parser.add_argument("--clip-coef", type=float, default=0.1,
+    parser.add_argument("--clip-coef", type=float, default=0.2,
         help="the surrogate clipping coefficient")
     parser.add_argument("--clip-vloss", type=lambda x: bool(strtobool(x)), default=True, nargs="?", const=True,
         help="Toggles whether or not to use a clipped loss for the value function, as per the paper.")
@@ -74,6 +76,8 @@ def parse_args():
         help="the maximum norm for the gradient clipping")
     parser.add_argument("--target-kl", type=float, default=None,
         help="the target KL divergence threshold")
+    parser.add_argument("--eval-dir", type=str, default="checkpoints/",
+        help="where to save best models")
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -116,7 +120,11 @@ if __name__ == "__main__":
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-    agent = Agent(envs).to(device)
+    envs_test = gym.vector.SyncVectorEnv(
+        [make_env(args.env_id, args.seed + i, i, args.capture_video, run_name) for i in range(1)]
+    )
+
+    agent = Agent_MLP(envs).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
@@ -168,6 +176,7 @@ if __name__ == "__main__":
                         "charts/episodic_return" : item["episode"]["r"],
                         "charts/episodic_length" : item["episode"]["l"]
                     }, step = global_step)
+                    
                     break
 
         # bootstrap value if not done
@@ -249,6 +258,31 @@ if __name__ == "__main__":
                 if approx_kl > args.target_kl:
                     break
 
+        # Evaluation!
+        eval_obs = envs_test.reset()
+        eval_done = False
+        total_eval_reward = 0
+        
+        while not eval_done:
+            with torch.no_grad():
+                eval_action, _, _, _ = agent.get_action_and_value(torch.Tensor(eval_obs).to(device)) 
+                eval_obs, eval_reward, eval_done, _ = envs_test.step(eval_action.cpu().numpy())
+                total_eval_reward += eval_reward
+    
+
+        print("Evaluated the agent and got reward: " + str(total_eval_reward))
+        
+        if total_eval_reward >= best_reward:
+            if not os.path.exists(args.eval_dir):
+                os.makedirs(args.eval_dir)
+            
+            torch.save(agent.state_dict(), args.eval_dir + "/ppo-" + str(update) + ".pt")
+            best_reward = total_eval_reward
+
+        wandb.log({
+            "eval/reward" : total_eval_reward
+        })
+
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
         var_y = np.var(y_true)
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
@@ -264,7 +298,7 @@ if __name__ == "__main__":
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
         print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
-        
+
         wandb.log({
             "charts/learning_rate" : optimizer.param_groups[0]["lr"],
             "losses/value_loss" :  v_loss.item(),

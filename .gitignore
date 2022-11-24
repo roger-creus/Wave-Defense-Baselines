@@ -4,3 +4,5 @@ wandb/*
 /wandb/*
 *.pyc
 /*.pyc
+*.pt
+/*.pt
