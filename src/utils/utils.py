@@ -18,6 +18,9 @@ def make_env(env_id, seed, idx, capture_video, run_name):
             print("--------- Training on the image-based environment ---------")
         else:
             print("--------- Training on the tabular-based environment ---------")
+
+        # seeding
+        env.seed(seed)        
         return env
     return thunk
 
