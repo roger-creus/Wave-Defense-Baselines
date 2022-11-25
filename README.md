@@ -24,6 +24,11 @@ For running PPO on the tabular-based environment run:
 
 python src/models/ppo_tabular.py --num-envs 16 --num-steps 2048 --num-minibatches 64 --update-epochs 10 --clip-coef 0.2 --ent-coef 0 --total-timesteps 10000000 --track --wandb-project-name WaveDefense --eval-dir checkpoints_tabular
 
+
+For running PPO on image-based environment **with no reward** using Inverse Curiosoty Module:
+
+python src/models/ppo_icm.py --num-envs 16 --num-steps 2048 --num-minibatches 64 --update-epochs 10 --clip-coef 0.2 --ent-coef 0 --total-timesteps 10000000 --track --wandb-project-name WaveDefense --eval-dir checkpoints_icm 
+
 ### Headless mode   
 
 For running in machines with no display (e.g. compute cluster) use:
