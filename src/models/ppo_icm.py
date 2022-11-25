@@ -214,17 +214,22 @@ if __name__ == "__main__":
             inv_losses.append(inv_loss)
             fwd_losses.append(torch.mean(fwd_loss))
 
+            idx = 0
             for item in info:
                 if "episode" in item.keys():
-                    print(f"global_step={global_step}, episodic_return={item['episode']['r']}")
-                    writer.add_scalar("charts/episodic_return", item["episode"]["r"], global_step)
+                    curiosity_return = torch.sum(rewards[:,idx]).item()
+
+                    print(f"global_step={global_step}, episodic_return={curiosity_return}")
+                    writer.add_scalar("charts/episodic_return", curiosity_return, global_step)
                     writer.add_scalar("charts/episodic_length", item["episode"]["l"], global_step)
                     
                     wandb.log({
-                        "charts/episodic_return" : item["episode"]["r"],
+                        "charts/episodic_return" : curiosity_return,
                         "charts/episodic_length" : item["episode"]["l"]
                     }, step = global_step)
                     break
+                
+                idx += 1
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -251,8 +256,8 @@ if __name__ == "__main__":
         b_values = values.reshape(-1)
 
         # total inv and fwd loss of the ICM model in this iteration of rollouts 
-        inv_loss = torch.sum(torch.tensor(inv_losses)).to(device)
-        fwd_loss = torch.sum(torch.tensor(fwd_losses)).to(device)
+        inv_loss = torch.mean(torch.tensor(inv_losses)).to(device)
+        fwd_loss = torch.mean(torch.tensor(fwd_losses)).to(device)
 
         # Optimizing the policy and value network
         b_inds = np.arange(args.batch_size)
@@ -380,7 +385,7 @@ if __name__ == "__main__":
             "losses/clipfrac": np.mean(clipfracs),
             "losses/explained_variance" : explained_var,
             "icm/fwd_loss" : fwd_loss.item(),
-            "icm/inv_loss" : inv.item(),
+            "icm/inv_loss" : inv_loss.item(),
             "icm/curiosity_loss" : curiosity_loss.item(),
             "charts/SPS" : int(global_step / (time.time() - start_time))
         }, step = global_step)
