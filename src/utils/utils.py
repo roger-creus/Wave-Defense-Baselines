@@ -3,18 +3,20 @@ import gym
 import numpy as np
 import torch
 
-def make_env(env_id, seed, idx, capture_video, run_name):
+import os
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+from utils.wrappers import *
+
+def make_env(env_id, seed):
     def thunk():
         env = gym.make(env_id)
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        if capture_video:
-            if idx == 0:
-                env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
         
         if env_id == "WaveDefense-v0" or env_id == "WaveDefenseNoReward-v0":
-            env = gym.wrappers.ResizeObservation(env, (84, 84))
-            env = gym.wrappers.GrayScaleObservation(env)
-            env = gym.wrappers.FrameStack(env, 4)
+            env = gym.wrappers.ResizeObservation(env, (64, 64))
+            #env = gym.wrappers.GrayScaleObservation(env)
+            #env = gym.wrappers.FrameStack(env, 4)
             print("--------- Training on the image-based environment ---------")
         else:
             print("--------- Training on the tabular-based environment ---------")
@@ -23,6 +25,24 @@ def make_env(env_id, seed, idx, capture_video, run_name):
         env.seed(seed)        
         return env
     return thunk
+
+def make_eval_env(env_id, seed):
+    env = gym.make(env_id)
+    env = gym.wrappers.RecordEpisodeStatistics(env)
+
+    if env_id == "WaveDefense-v0" or env_id == "WaveDefenseNoReward-v0":
+        env = gym.wrappers.ResizeObservation(env, (64, 64))
+        #env = gym.wrappers.GrayScaleObservation(env)
+        #env = gym.wrappers.FrameStack(env, 4)
+        print("--------- Training on the image-based environment ---------")
+    else:
+        print("--------- Training on the tabular-based environment ---------")
+
+    #env = VideoWrapper(env, update_freq = 1)
+    
+    # seeding
+    env.seed(seed)        
+    return env
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
