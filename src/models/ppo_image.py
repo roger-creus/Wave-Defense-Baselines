@@ -13,6 +13,10 @@ from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 import WaveDefense
 
+import wandb
+
+from IPython import embed
+
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from utils.utils import *
@@ -34,7 +38,7 @@ def parse_args():
         help="if toggled, cuda will be enabled by default")
     parser.add_argument("--track", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
         help="if toggled, this experiment will be tracked with Weights and Biases")
-    parser.add_argument("--wandb-project-name", type=str, default="cleanRL",
+    parser.add_argument("--wandb-project-name", type=str, default="WaveDefense",
         help="the wandb's project name")
     parser.add_argument("--wandb-entity", type=str, default=None,
         help="the entity (team) of wandb's project")
@@ -78,13 +82,14 @@ def parse_args():
         help="the target KL divergence threshold")
     parser.add_argument("--eval-dir", type=str, default="checkpoints/",
         help="where to save best models")
+    parser.add_argument("--eval-interval", type=int, default="1",
+        help="after how many train steps to evaluate the env")
     
     args = parser.parse_args()
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     # fmt: on
     return args
-
 
 if __name__ == "__main__":
     args = parse_args()
@@ -117,13 +122,10 @@ if __name__ == "__main__":
 
     # env setup
     envs = gym.vector.SyncVectorEnv(
-        [make_env(args.env_id, args.seed + i, i, args.capture_video, run_name) for i in range(args.num_envs)]
+        [make_env(args.env_id, args.seed + i) for i in range(args.num_envs)]
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-    envs_test = gym.vector.SyncVectorEnv(
-        [make_env(args.env_id, args.seed + i, i, args.capture_video, run_name) for i in range(1)]
-    )
 
     agent = Agent(envs).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
@@ -261,29 +263,39 @@ if __name__ == "__main__":
 
 
         # Evaluation!
-        eval_obs = envs_test.reset()
-        eval_done = False
-        total_eval_reward = 0
+        if update % args.eval_interval == 0:
         
-        while not eval_done:
-            with torch.no_grad():
-                eval_action, _, _, _ = agent.get_action_and_value(torch.Tensor(eval_obs).to(device)) 
-                eval_obs, eval_reward, eval_done, _ = envs_test.step(eval_action.cpu().numpy())
-                total_eval_reward += eval_reward
-    
-
-        print("Evaluated the agent and got reward: " + str(total_eval_reward))
-        
-        if total_eval_reward >= best_reward:
-            if not os.path.exists(args.eval_dir):
-                os.makedirs(args.eval_dir)
+            envs_test = gym.vector.SyncVectorEnv(
+                [make_env(args.env_id, np.random.randint(1000))]
+            )
             
-            torch.save(agent.state_dict(), args.eval_dir + "/ppo-" + str(update) + ".pt")
-            best_reward = total_eval_reward
+            envs_test = VideoWrapper(envs_test, update_freq=3)
 
-        wandb.log({
-            "eval/reward" : total_eval_reward
-        })
+            for ep in range(5):
+                eval_obs = envs_test.reset()
+                eval_done = False
+                total_eval_reward = 0
+                
+                while not eval_done:
+                    with torch.no_grad():
+                        eval_action, _, _, _ = agent.get_action_and_value(torch.Tensor(eval_obs).to(device)) 
+                        eval_obs, eval_reward, eval_done, _ = envs_test.step(eval_action.cpu().numpy())
+                        total_eval_reward += eval_reward
+            
+
+                print("Evaluated the agent and got reward: " + str(total_eval_reward))
+                
+                if total_eval_reward >= best_reward:
+                    if not os.path.exists(args.eval_dir):
+                        os.makedirs(args.eval_dir)
+                    torch.save(agent.state_dict(), args.eval_dir + "/ppo-" + str(update) + ".pt")
+                    best_reward = total_eval_reward
+
+                wandb.log({
+                    "eval/reward" : total_eval_reward
+                })
+
+            envs_test.send_wandb_video()
 
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
         var_y = np.var(y_true)

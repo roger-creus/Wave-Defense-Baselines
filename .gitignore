@@ -6,3 +6,5 @@ wandb/*
 /*.pyc
 *.pt
 /*.pt
+*.npy
+/*.npy
