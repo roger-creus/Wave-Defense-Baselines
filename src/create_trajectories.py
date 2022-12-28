@@ -35,26 +35,32 @@ for env_ in range(envs_num):
     env.seed(args.seed + env_)
 
     envs_path = "env_" + str(args.seed + env_) + "/"
-    envs_obs_path = args.save_path + "obs/" + envs_path
-    envs_next_obs_path = args.save_path + "next_obs/" + envs_path
-    envs_actions_path = args.save_path + "actions/" + envs_path
-    envs_rewards_path = args.save_path + "rewards/" + envs_path
-    envs_dones_path = args.save_path + "dones/" + envs_path
+    envs_obs_path = os.path.join(args.save_path, "obs/" + envs_path)
+    envs_next_obs_path = os.path.join(args.save_path, "next_obs/" + envs_path)
+    envs_actions_path = os.path.join(args.save_path, "actions/" + envs_path)
+    envs_rewards_path = os.path.join(args.save_path, "rewards/" + envs_path)
+    envs_dones_path = os.path.join(args.save_path, "dones/" + envs_path)
 
     if not os.path.exists(envs_obs_path):
         os.makedirs(envs_obs_path)
+        print("created path " + str(envs_obs_path))
     
     if not os.path.exists(envs_next_obs_path):
         os.makedirs(envs_next_obs_path)
+        print("created path " + str(envs_next_obs_path))
 
     if not os.path.exists(envs_rewards_path):
         os.makedirs(envs_rewards_path)
+        print("created path " + str(envs_rewards_path))
     
     if not os.path.exists(envs_actions_path):
         os.makedirs(envs_actions_path)
+        print("created path " + str(envs_actions_path))
 
     if not os.path.exists(envs_dones_path):
         os.makedirs(envs_dones_path)
+        print("created path " + str(envs_dones_path))
+
     
     print("creating trajectories with seed: " + str(args.seed + env_))
 
@@ -98,23 +104,23 @@ for env_ in range(envs_num):
         trajectory_dones = np.array(trajectory_dones)
         trajectory_actions = np.array(trajectory_actions)
         
-        trajectory_observations_path = envs_obs_path + "trajectory_obs_"  + str(i) + ".npy"
-        trajectory_actions_path = envs_actions_path +  "trajectory_actions_" + str(i) + ".npy"
-        trajectory_observations_next_path = envs_next_obs_path +  "trajectory_nextobs_" + str(i) + ".npy"
-        trajectory_rewards_path = envs_rewards_path +  "trajectory_rewards_" + str(i) + ".npy"
-        trajectory_dones_path = envs_dones_path +  "trajectory_dones_" + str(i) + ".npy"
+        trajectory_observations_path = os.path.join(envs_obs_path, "trajectory_obs_"  + str(i) + ".npy")
+        trajectory_actions_path = os.path.join(envs_actions_path, "trajectory_actions_" + str(i) + ".npy")
+        trajectory_observations_next_path = os.path.join(envs_next_obs_path, "trajectory_nextobs_" + str(i) + ".npy")
+        trajectory_rewards_path = os.path.join(envs_rewards_path, "trajectory_rewards_" + str(i) + ".npy")
+        trajectory_dones_path = os.path.join(envs_dones_path, "trajectory_dones_" + str(i) + ".npy")
 
-        with open(trajectory_observations_path, 'wb') as tf:
-            np.save(tf, trajectory)
+        with open(trajectory_observations_path, 'wb') as f:
+            np.save(f, trajectory)
         
-        with open(trajectory_observations_next_path, 'wb') as tf:
-            np.save(tf, trajectory_next)
+        with open(trajectory_observations_next_path, 'wb') as f1:
+            np.save(f1, trajectory_next)
 
-        with open(trajectory_rewards_path, 'wb') as tf:
-            np.save(tf, trajectory_rewards)
+        with open(trajectory_rewards_path, 'wb') as f2:
+            np.save(f2, trajectory_rewards)
         
-        with open(trajectory_dones_path, 'wb') as tf:
-            np.save(tf, trajectory_dones)
+        with open(trajectory_dones_path, 'wb') as f3:
+            np.save(f3, trajectory_dones)
 
-        with open(trajectory_actions_path, 'wb') as ta:
-            np.save(ta, trajectory_actions)
+        with open(trajectory_actions_path, 'wb') as f4:
+            np.save(f4, trajectory_actions)

@@ -13,7 +13,7 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, in_channels, action_size, hidden_size=32):
+    def __init__(self, in_channels, action_size, hidden_size=512):
         super(Actor, self).__init__()
        
         self.conv = nn.Sequential(
@@ -53,7 +53,7 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, in_channels, action_size, hidden_size=32, seed=1):
+    def __init__(self, in_channels, action_size, hidden_size=512, seed=1):
         super(Critic, self).__init__()
         torch.manual_seed(seed)
         
@@ -80,7 +80,7 @@ class Critic(nn.Module):
 class Value(nn.Module):
     """Value (Value) Model."""
 
-    def __init__(self, in_channels, hidden_size=32):
+    def __init__(self, in_channels, hidden_size=512):
         super(Value, self).__init__()
         
         self.conv = nn.Sequential(
