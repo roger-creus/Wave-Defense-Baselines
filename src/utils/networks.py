@@ -51,6 +51,23 @@ class Agent(nn.Module):
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(hidden)
         
+
+class QNetwork(nn.Module):
+    def __init__(self, env):
+        super().__init__()
+        self.network = Encoder(in_channels = 4)
+
+        self.fc = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(64 * 7 * 7, 512),
+            nn.ReLU(),
+            nn.Linear(512, env.single_action_space.n),
+        )
+
+    def forward(self, x):
+        return self.fc(self.network(x / 255.0))
+
+
 class Agent_MLP(nn.Module):
     def __init__(self, envs):
         super().__init__()

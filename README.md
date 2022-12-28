@@ -46,3 +46,6 @@ For running in machines with no display (e.g. compute cluster) use:
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 Note that the latter will disable rendering
+
+### Warning
+UserWarning: WARN: The environment WaveDefense-v0 is out of date. You should consider upgrading to version `v1` with the environment ID `WaveDefense-v1`.

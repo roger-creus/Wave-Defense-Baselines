@@ -43,6 +43,10 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
 
+def linear_schedule(start_e: float, end_e: float, duration: int, t: int):
+    slope = (end_e - start_e) / duration
+    return max(slope * t + start_e, end_e)
+
 class RecordEpisodeStatistics(gym.Wrapper):
     def __init__(self, env, deque_size=100):
         super().__init__(env)
