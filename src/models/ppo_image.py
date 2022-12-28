@@ -82,7 +82,7 @@ def parse_args():
         help="the target KL divergence threshold")
     parser.add_argument("--eval-dir", type=str, default="checkpoints/",
         help="where to save best models")
-    parser.add_argument("--eval-interval", type=int, default="1",
+    parser.add_argument("--eval-interval", type=int, default=100,
         help="after how many train steps to evaluate the env")
     
     args = parser.parse_args()
@@ -125,7 +125,6 @@ if __name__ == "__main__":
         [make_env(args.env_id, args.seed + i) for i in range(args.num_envs)]
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
-
 
     agent = Agent(envs).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
@@ -265,37 +264,36 @@ if __name__ == "__main__":
         # Evaluation!
         if update % args.eval_interval == 0:
         
-            envs_test = gym.vector.SyncVectorEnv(
-                [make_env(args.env_id, np.random.randint(1000))]
-            )
-            
+            envs_test = make_eval_env(args.env_id, np.random.randint(1000))
             envs_test = VideoWrapper(envs_test, update_freq=3)
+            mean_reward = []
 
             for ep in range(5):
                 eval_obs = envs_test.reset()
                 eval_done = False
                 total_eval_reward = 0
-                
+
                 while not eval_done:
                     with torch.no_grad():
-                        eval_action, _, _, _ = agent.get_action_and_value(torch.Tensor(eval_obs).to(device)) 
+                        eval_action, _, _, _ = agent.get_action_and_value(torch.Tensor(np.array(eval_obs)).unsqueeze(0).to(device)) 
                         eval_obs, eval_reward, eval_done, _ = envs_test.step(eval_action.cpu().numpy())
                         total_eval_reward += eval_reward
             
-
                 print("Evaluated the agent and got reward: " + str(total_eval_reward))
-                
+                mean_reward.append(total_eval_reward)
+
                 if total_eval_reward >= best_reward:
                     if not os.path.exists(args.eval_dir):
                         os.makedirs(args.eval_dir)
                     torch.save(agent.state_dict(), args.eval_dir + "/ppo-" + str(update) + ".pt")
                     best_reward = total_eval_reward
 
-                wandb.log({
-                    "eval/reward" : total_eval_reward
-                })
+            wandb.log({
+                "eval/reward" : np.mean(mean_reward)
+            })
 
             envs_test.send_wandb_video()
+            envs_test.close()
 
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
         var_y = np.var(y_true)

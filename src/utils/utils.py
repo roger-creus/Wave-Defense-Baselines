@@ -2,6 +2,7 @@
 import gym
 import numpy as np
 import torch
+import wandb
 
 def make_env(env_id, seed):
     def thunk():
@@ -9,9 +10,9 @@ def make_env(env_id, seed):
         env = gym.wrappers.RecordEpisodeStatistics(env)
         
         if env_id == "WaveDefense-v0" or env_id == "WaveDefenseNoReward-v0":
-            env = gym.wrappers.ResizeObservation(env, (64, 64))
-            #env = gym.wrappers.GrayScaleObservation(env)
-            #env = gym.wrappers.FrameStack(env, 4)
+            env = gym.wrappers.ResizeObservation(env, (84, 84))
+            env = gym.wrappers.GrayScaleObservation(env)
+            env = gym.wrappers.FrameStack(env, 4)
             print("--------- Training on the image-based environment ---------")
         else:
             print("--------- Training on the tabular-based environment ---------")
@@ -26,15 +27,13 @@ def make_eval_env(env_id, seed):
     env = gym.wrappers.RecordEpisodeStatistics(env)
 
     if env_id == "WaveDefense-v0" or env_id == "WaveDefenseNoReward-v0":
-        env = gym.wrappers.ResizeObservation(env, (64, 64))
-        #env = gym.wrappers.GrayScaleObservation(env)
-        #env = gym.wrappers.FrameStack(env, 4)
+        env = gym.wrappers.ResizeObservation(env, (84, 84))
+        env = gym.wrappers.GrayScaleObservation(env)
+        env = gym.wrappers.FrameStack(env, 4)
         print("--------- Training on the image-based environment ---------")
     else:
         print("--------- Training on the tabular-based environment ---------")
 
-    #env = VideoWrapper(env, update_freq = 1)
-    
     # seeding
     env.seed(seed)        
     return env
@@ -121,7 +120,7 @@ class VideoWrapper(gym.Wrapper):
         print(lf.shape)
         frames = np.swapaxes(lf, 1, 3)
         frames = np.swapaxes(frames, 2, 3)
-        wandb.log({"video": wandb.Video(frames, fps=10, format="gif")})
+        wandb.log({"video": wandb.Video(frames, fps=60, format="gif")})
         print("=== Logged GIF")
 
     def get_wandb_video(self):
