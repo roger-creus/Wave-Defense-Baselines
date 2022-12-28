@@ -82,7 +82,7 @@ def parse_args():
         help="the target KL divergence threshold")
     parser.add_argument("--eval-dir", type=str, default="checkpoints/",
         help="where to save best models")
-    parser.add_argument("--eval-interval", type=int, default=100,
+    parser.add_argument("--eval-interval", type=int, default=1000,
         help="after how many train steps to evaluate the env")
     
     args = parser.parse_args()

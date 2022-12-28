@@ -35,14 +35,26 @@ for env_ in range(envs_num):
     env.seed(args.seed + env_)
 
     envs_path = "env_" + str(args.seed + env_) + "/"
-    envs_obs_path = args.save_path + "observations/" + envs_path
+    envs_obs_path = args.save_path + "obs/" + envs_path
+    envs_next_obs_path = args.save_path + "next_obs/" + envs_path
     envs_actions_path = args.save_path + "actions/" + envs_path
+    envs_rewards_path = args.save_path + "rewards/" + envs_path
+    envs_dones_path = args.save_path + "dones/" + envs_path
 
     if not os.path.exists(envs_obs_path):
         os.makedirs(envs_obs_path)
     
+    if not os.path.exists(envs_next_obs_path):
+        os.makedirs(envs_next_obs_path)
+
+    if not os.path.exists(envs_rewards_path):
+        os.makedirs(envs_rewards_path)
+    
     if not os.path.exists(envs_actions_path):
         os.makedirs(envs_actions_path)
+
+    if not os.path.exists(envs_dones_path):
+        os.makedirs(envs_dones_path)
     
     print("creating trajectories with seed: " + str(args.seed + env_))
 
@@ -50,12 +62,19 @@ for env_ in range(envs_num):
         steps = 0
         done = False
         obs = env.reset()
-        
+        obs = cv2.resize(obs, (84, 84), interpolation=cv2.INTER_AREA)
+
         trajectory = []
+        trajectory_next = []
+        trajectory_rewards = []
         trajectory_actions = []
+        trajectory_dones = []
 
         while steps < traj_len and not done:
             action = env.action_space.sample()
+            
+            trajectory.append(obs)
+            
             obs, reward, done, info = env.step(action)
 
             # img to gray scale, eventually the model uses gray images
@@ -65,18 +84,37 @@ for env_ in range(envs_num):
             
             # scale imgs to [0,1], the model uses this format
             #obs = np.array(obs).astype(np.float32) / 255.0
-            
-            trajectory.append(obs)
+
+            trajectory_next.append(obs)
             trajectory_actions.append(action)
+            trajectory_rewards.append(reward)
+            trajectory_dones.append(done)
+            
+            steps += 1
 
         trajectory = np.array(trajectory)
+        trajectory_next = np.array(trajectory_next)
+        trajectory_rewards = np.array(trajectory_rewards)
+        trajectory_dones = np.array(trajectory_dones)
         trajectory_actions = np.array(trajectory_actions)
         
-        trajectory_observations_path = envs_obs_path + "trajectory_observations_"  + str(i) + ".npy"
+        trajectory_observations_path = envs_obs_path + "trajectory_obs_"  + str(i) + ".npy"
         trajectory_actions_path = envs_actions_path +  "trajectory_actions_" + str(i) + ".npy"
+        trajectory_observations_next_path = envs_next_obs_path +  "trajectory_nextobs_" + str(i) + ".npy"
+        trajectory_rewards_path = envs_rewards_path +  "trajectory_rewards_" + str(i) + ".npy"
+        trajectory_dones_path = envs_dones_path +  "trajectory_dones_" + str(i) + ".npy"
 
         with open(trajectory_observations_path, 'wb') as tf:
             np.save(tf, trajectory)
         
+        with open(trajectory_observations_next_path, 'wb') as tf:
+            np.save(tf, trajectory_next)
+
+        with open(trajectory_rewards_path, 'wb') as tf:
+            np.save(tf, trajectory_rewards)
+        
+        with open(trajectory_dones_path, 'wb') as tf:
+            np.save(tf, trajectory_dones)
+
         with open(trajectory_actions_path, 'wb') as ta:
             np.save(ta, trajectory_actions)
