@@ -27,7 +27,7 @@ def get_config():
     parser.add_argument("--save_every", type=int, default=25, help="Saves the network every x epochs, default: 25")
     parser.add_argument("--save_path", type=str, default="/home/roger/Desktop/Wave-Defense-Baselines-/checkpoints", help="Where to save the model")
     parser.add_argument("--batch_size", type=int, default=512, help="Batch size, default: 256")
-    parser.add_argument("--hidden_size", type=int, default=256, help="")
+    parser.add_argument("--hidden_size", type=int, default=512, help="")
     parser.add_argument("--learning_rate", type=float, default=3e-4, help="")
     parser.add_argument("--temperature", type=float, default=3, help="")
     parser.add_argument("--expectile", type=float, default=0.8, help="")
