@@ -19,11 +19,11 @@ os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 def get_config():
     parser = argparse.ArgumentParser(description='RL')
+    parser.add_argument("--data_path", type=str, default="/home/roger/Desktop/Wave-Defense-Baselines-/src/representations/trajectories", help="Where the collected experiences are")
     parser.add_argument("--run_name", type=str, default="IQL", help="Run name, default: SAC")
     parser.add_argument("--env", type=str, default="WaveDefense-v0", help="Gym environment name, default: Pendulum-v0")
     parser.add_argument("--episodes", type=int, default=100, help="Number of episodes, default: 100")
     parser.add_argument("--seed", type=int, default=1, help="Seed, default: 1")
-    parser.add_argument("--log_video", type=int, default=0, help="Log agent behaviour to wanbd when set to 1, default: 0")
     parser.add_argument("--save_every", type=int, default=25, help="Saves the network every x epochs, default: 25")
     parser.add_argument("--save_path", type=str, default="/home/roger/Desktop/Wave-Defense-Baselines-/checkpoints", help="Where to save the model")
     parser.add_argument("--batch_size", type=int, default=512, help="Batch size, default: 256")
@@ -81,7 +81,7 @@ def train(config):
     random.seed(config.seed)
     torch.manual_seed(config.seed)
 
-    dataloader = prep_dataloader(env_id=config.env, batch_size=config.batch_size, seed=config.seed, path="/home/roger/Desktop/Wave-Defense-Baselines-/src/representations/trajectories")
+    dataloader = prep_dataloader(env_id=config.env, batch_size=config.batch_size, seed=config.seed, path=config.data_path)
 
     env = make_env(config.env, config.seed)
 
