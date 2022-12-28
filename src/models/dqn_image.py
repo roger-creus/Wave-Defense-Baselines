@@ -71,7 +71,9 @@ def parse_args():
         help="timestep to start learning")
     parser.add_argument("--train-frequency", type=int, default=4,
         help="the frequency of training")
-    parser.add_argument("--eval-interval", type=int, default=4,
+    parser.add_argument("--eval-interval", type=int, default=50000,
+        help="the frequency of evaluation")
+    parser.add_argument("--eval-dir",  type=str, default="checkpoints/",
         help="the frequency of evaluation")
     args = parser.parse_args()
     # fmt: on
@@ -221,7 +223,7 @@ if __name__ == "__main__":
                     if total_eval_reward >= best_reward:
                         if not os.path.exists(args.eval_dir):
                             os.makedirs(args.eval_dir)
-                        torch.save(agent.state_dict(), args.eval_dir + "/dqn-" + str(update) + ".pt")
+                        torch.save(q_network.state_dict(), args.eval_dir + "/dqn-" + str(update) + ".pt")
                         best_reward = total_eval_reward
 
                 wandb.log({
