@@ -8,3 +8,5 @@ wandb/*
 /*.pt
 *.npy
 /*.npy
+/src/launchers/*
+src/launchers/*
